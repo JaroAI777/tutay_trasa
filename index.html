@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Najkrótsza trasa piesza (OSM) — 10–12 adresów</title>
+  <title>Najkrótsza trasa piesza (OSM) — DOCX (TUTAY)</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    /* Czytelna kolorystyka w trybie jasnym i ciemnym */
     :root {
       color-scheme: light dark;
       --bg: #ffffff;
@@ -23,8 +22,6 @@
       --btnBgPrimary: rgba(0, 120, 255, 0.14);
       --btnFg: #0b0f19;
       --chipBg: rgba(11, 15, 25, 0.06);
-      --warn: #b45309;
-      --err: #b91c1c;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -42,8 +39,6 @@
         --btnBgPrimary: rgba(0, 120, 255, 0.24);
         --btnFg: #e8ecf7;
         --chipBg: rgba(232, 236, 247, 0.08);
-        --warn: #f59e0b;
-        --err: #ef4444;
       }
     }
 
@@ -58,9 +53,8 @@
 
     .app {
       display: grid;
-      grid-template-columns: 420px 1fr;
+      grid-template-columns: 460px 1fr;
       height: 100vh;
-      gap: 0;
     }
 
     .panel {
@@ -79,7 +73,7 @@
       margin: 12px 0 6px;
     }
 
-    input[type="text"], select, textarea {
+    input[type="text"], input[type="file"], select, textarea {
       width: 100%;
       padding: 10px 12px;
       border-radius: 10px;
@@ -89,17 +83,19 @@
       outline: none;
     }
 
+    input[type="file"] { padding: 8px 10px; }
+
     input[type="text"]::placeholder,
     textarea::placeholder {
       color: var(--inputPh);
     }
 
-    textarea { min-height: 210px; resize: vertical; }
+    textarea { min-height: 190px; resize: vertical; }
 
     .row { display: flex; gap: 10px; }
     .row > * { flex: 1; }
 
-    .btnrow { display: flex; gap: 10px; margin-top: 12px; }
+    .btnrow { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 
     button {
       border: 1px solid var(--line);
@@ -129,6 +125,16 @@
       white-space: pre-wrap;
       min-height: 44px;
       color: var(--fg);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--chipBg);
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .result {
@@ -162,7 +168,7 @@
 
     .footer { margin-top: 14px; font-size: 12px; color: var(--muted2); line-height: 1.35; }
 
-    @media (max-width: 920px) {
+    @media (max-width: 980px) {
       .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
       .panel { border-right: none; border-bottom: 1px solid var(--line); }
       .map { height: 60vh; }
@@ -174,13 +180,20 @@
     <div class="panel">
       <h2 style="margin:0 0 6px; font-size:16px;">Najkrótsza trasa piesza (OpenStreetMap)</h2>
       <div class="hint">
-        Wpisz miasto oraz 10–12 adresów (po jednym w wierszu). Aplikacja geokoduje adresy, wyznacza najkrótszą kolejność przejścia pieszo i rysuje trasę na mapie.
+        Proszę wczytać dokument <span class="badge">DOCX</span> (formularz TUTAY).
+        Aplikacja pobierze przystanki z pola <b>ADRES</b> (jeżeli brak — użyje pola <b>MIEJSCE</b> jako trybu zgodności) i automatycznie obliczy trasę.
+      </div>
+
+      <label for="docx">Wczytaj dokument DOCX (TUTAY)</label>
+      <input id="docx" type="file" accept=".docx" multiple />
+      <div class="hint">
+        Na GitHub Pages (statycznie) nie wczytamy bezpośrednio Google Docs „.gdoc”. Proszę wyeksportować dokument do <b>.docx</b>.
       </div>
 
       <div class="row">
         <div>
-          <label for="city">Miasto</label>
-          <input id="city" type="text" placeholder="np. Wrocław" value="Wrocław" />
+          <label for="city">Miasto (z DOCX; można nadpisać)</label>
+          <input id="city" type="text" placeholder="np. Wrocław" value="" />
         </div>
         <div>
           <label for="geocoder">Geokoder</label>
@@ -192,40 +205,28 @@
         </div>
       </div>
 
-      <label for="addresses">Adresy (10–12 linii)</label>
-      <textarea id="addresses" placeholder="Rynek 1\nul. Świdnicka 8\n...">Rynek 1
-plac Solny 1
-ul. Świdnicka 8
-ul. Piłsudskiego 105
-ul. Grodzka 11
-ul. Katedralna 4
-ul. Wita Stwosza 32
-ul. Kazimierza Wielkiego 35
-ul. Kuźnicza 21
-ul. Odrzańska 1</textarea>
-
       <div class="row">
-        <div>
-          <label for="router">Routing (pieszo)</label>
-          <select id="router">
-            <option value="osrm_fossgis" selected>OSRM (FOSSGIS) — routed-foot</option>
-          </select>
-        </div>
         <div>
           <label for="startMode">Punkt startu</label>
           <select id="startMode">
             <option value="free" selected>Dowolny (najszybsza całość)</option>
-            <option value="fixed">Pierwszy adres jako start</option>
+            <option value="fixed">Pierwszy przystanek jako start</option>
           </select>
+        </div>
+        <div>
+          <label for="previewCount">Liczba adresów</label>
+          <input id="previewCount" type="text" value="0" readonly />
         </div>
       </div>
 
+      <label for="preview">Podgląd wczytanych przystanków</label>
+      <textarea id="preview" readonly placeholder="Po wczytaniu DOCX zostaną tu pokazane przystanki…"></textarea>
+
       <div class="btnrow">
-        <button id="btnExample" type="button">Wczytaj przykład</button>
-        <button id="btnRun" class="primary" type="button">Oblicz trasę</button>
+        <button id="btnRecalc" class="primary" type="button" disabled>Przelicz trasę</button>
       </div>
 
-      <div id="status" class="status">Gotowe.</div>
+      <div id="status" class="status">Gotowe. Proszę wczytać plik DOCX.</div>
 
       <div id="result" class="result" style="display:none;">
         <h3>Wynik</h3>
@@ -253,6 +254,8 @@ ul. Odrzańska 1</textarea>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+
   <script>
     // ====== Konfiguracja usług ======
     const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
@@ -260,20 +263,31 @@ ul. Odrzańska 1</textarea>
     const OSRM_FOSSGIS_FOOT_BASE = "https://routing.openstreetmap.de/routed-foot";
     const OSRM_PROFILE = "walking";
 
-    // Respektowanie limitów usług publicznych (w praktyce: geokodowanie 1 req/s).
+    // Limity usług publicznych: geokodowanie ~1 żądanie/s.
     const GEOCODE_DELAY_MS = 1100;
 
-    // ====== UI helpers ======
+    // ====== UI ======
     const $ = (id) => document.getElementById(id);
-    const statusEl = $("status");
-    const btnRun = $("btnRun");
-    const btnExample = $("btnExample");
+    const statusEl  = $("status");
+    const docxInput = $("docx");
+    const btnRecalc = $("btnRecalc");
 
-    function setStatus(msg) {
-      statusEl.textContent = msg;
+    const state = { city: "", stops: [], busy: false };
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function setBusy(v) {
+      state.busy = v;
+      docxInput.disabled = v;
+      btnRecalc.disabled = v || state.stops.length < 2;
     }
 
-    function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+    function refreshPreview() {
+      $("preview").value = state.stops.join("\n");
+      $("previewCount").value = String(state.stops.length);
+      btnRecalc.disabled = state.busy || state.stops.length < 2;
+    }
 
     function fmtTime(sec) {
       if (!isFinite(sec)) return "—";
@@ -288,17 +302,7 @@ ul. Odrzańska 1</textarea>
       return `${(meters / 1000).toFixed(2)} km`;
     }
 
-    function parseAddresses(text) {
-      return String(text)
-        .split(/\r?\n/)
-        .map(s => s.trim())
-        .filter(Boolean);
-    }
-
     function normalizeQuery(s) {
-      // Uwaga: poprzednia wersja miała niewidoczne znaki (TAB/CR) wewnątrz literału RegExp,
-      // co mogło powodować: "Invalid regular expression: missing /".
-      // Tu używamy jawnych sekwencji \t \r \n.
       return String(s)
         .replace(/[“”]/g, '"')
         .replace(/[‘’]/g, "'")
@@ -306,6 +310,140 @@ ul. Odrzańska 1</textarea>
         .trim();
     }
 
+    function normalizeKey(k) { return normalizeQuery(k).toUpperCase(); }
+
+    // ====== DOCX parsing (TUTAY) ======
+    function splitMaybeKeyValue(line) {
+      // Mammoth dla tabel często zwraca: "KLUCZ\tWARTOŚĆ".
+      const parts = String(line).split("\t");
+      if (parts.length >= 2) {
+        return { ok: true, key: parts[0].trim(), value: parts.slice(1).join("\t").trim() };
+      }
+      return { ok: false, key: String(line).trim(), value: "" };
+    }
+
+    function cleanStopValue(v) {
+      let t = normalizeQuery(v);
+      t = t.replace(/^\d+\.[ ]*/, "");
+      t = t.replace(/^[-•\u2022][ ]*/, "");
+      return t.trim();
+    }
+
+    function extractCityAndStopsFromTutayText(rawText) {
+      const lines = String(rawText).split(/\r?\n/).map(l => String(l).trim());
+      let city = "";
+      const byAdres = [];
+      const byMiejsce = [];
+
+      // 1) tryb tabelaryczny: KEY\tVALUE
+      for (const line of lines) {
+        const kv = splitMaybeKeyValue(line);
+        if (!kv.ok) continue;
+        const k = normalizeKey(kv.key);
+        const v = cleanStopValue(kv.value);
+        if (!city && k === "MIASTO") city = normalizeQuery(kv.value);
+        if (k === "ADRES" && v) byAdres.push(v);
+        if (k === "MIEJSCE" && v) byMiejsce.push(v);
+      }
+
+      // 2) tryb liniowy: KEY w linii, VALUE w kolejnej
+      if (!city || (byAdres.length === 0 && byMiejsce.length === 0)) {
+        for (let i = 0; i < lines.length; i++) {
+          const k = normalizeKey(lines[i]);
+          if (!city && k === "MIASTO") {
+            i++;
+            while (i < lines.length && !lines[i]) i++;
+            if (i < lines.length) city = normalizeQuery(lines[i]);
+            continue;
+          }
+          if (k === "ADRES" || k === "MIEJSCE") {
+            const target = (k === "ADRES") ? byAdres : byMiejsce;
+            i++;
+            while (i < lines.length && !lines[i]) i++;
+            if (i < lines.length) {
+              const v = cleanStopValue(lines[i]);
+              if (v) target.push(v);
+            }
+            continue;
+          }
+        }
+      }
+
+      // Preferuj ADRES, inaczej MIEJSCE (zgodność z starszymi dokumentami).
+      const rawStops = (byAdres.length > 0) ? byAdres : byMiejsce;
+
+      // Dedup
+      const out = [];
+      const seen = new Set();
+      for (const s of rawStops) {
+        const key = s.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); out.push(s); }
+      }
+
+      return { city, stops: out, mode: (byAdres.length > 0) ? "ADRES" : "MIEJSCE" };
+    }
+
+    async function loadDocxFiles(files) {
+      if (!files || files.length === 0) return;
+      if (typeof mammoth === "undefined" || !mammoth.extractRawText) {
+        throw new Error("Brak biblioteki DOCX (mammoth). Proszę odświeżyć stronę.");
+      }
+
+      const allStops = [];
+      const cities = new Set();
+      const modes = new Set();
+
+      for (let idx = 0; idx < files.length; idx++) {
+        const f = files[idx];
+        if (!f.name.toLowerCase().endsWith(".docx")) continue;
+
+        setStatus(`Wczytywanie DOCX (${idx + 1}/${files.length}): ${f.name}`);
+        const buf = await f.arrayBuffer();
+        const res = await mammoth.extractRawText({ arrayBuffer: buf });
+        const rawText = (res && res.value) ? res.value : "";
+
+        const parsed = extractCityAndStopsFromTutayText(rawText);
+        if (parsed.city) cities.add(parsed.city);
+        if (parsed.mode) modes.add(parsed.mode);
+        for (const s of (parsed.stops || [])) allStops.push(s);
+      }
+
+      const uniqueCities = Array.from(cities).filter(Boolean);
+      if (uniqueCities.length > 1) {
+        throw new Error(`Wczytano dokumenty z różnymi miastami: ${uniqueCities.join(", ")}. Proszę użyć jednego miasta.`);
+      }
+
+      const city = uniqueCities[0] || "";
+      if (city) {
+        $("city").value = city;
+        state.city = city;
+      } else {
+        state.city = normalizeQuery($("city").value);
+      }
+
+      // Dedup global
+      const out = [];
+      const seen = new Set();
+      for (const s of allStops) {
+        const key = s.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); out.push(s); }
+      }
+
+      if (!state.city) throw new Error("Brak pola MIASTO w dokumencie (lub pole jest puste)." );
+      if (out.length === 0) throw new Error("Nie znaleziono żadnych przystanków w polu ADRES ani MIEJSCE." );
+
+      state.stops = (out.length > 12) ? out.slice(0, 12) : out;
+      refreshPreview();
+
+      const used = (modes.has("ADRES")) ? "ADRES" : "MIEJSCE";
+      if (out.length > 12) {
+        setStatus(`Wczytano ${out.length} przystanków (użyto: ${used}). Do obliczeń użyto pierwszych 12.`);
+      } else {
+        setStatus(`Wczytano ${out.length} przystanków (użyto: ${used}).`);
+      }
+    }
+
+    // ====== Geokodowanie ======
     function withinBounds(lat, lon, bounds) {
       if (!bounds) return true;
       const { south, north, west, east } = bounds;
@@ -326,16 +464,13 @@ ul. Odrzańska 1</textarea>
       const ct = (resp.headers.get("content-type") || "").toLowerCase();
       try {
         if (ct.includes("application/json")) return await resp.json();
-        const t = await resp.text();
-        return { _text: t };
+        return { _text: await resp.text() };
       } catch {
         return { _readError: true };
       }
     }
 
-    // ====== Geokodowanie ======
     async function getCityBoundsNominatim(city) {
-      // Ustalamy bbox miasta raz i używamy go do wszystkich przystanków.
       const c = normalizeQuery(city);
       const url = new URL(NOMINATIM_BASE + "/search");
       url.searchParams.set("format", "jsonv2");
@@ -364,19 +499,10 @@ ul. Odrzańska 1</textarea>
       if (![south, north, west, east].every(v => Number.isFinite(v))) {
         throw new Error("Nominatim(city): nieprawidłowy boundingbox");
       }
-      if (!(south <= north && west <= east)) {
-        throw new Error("Nominatim(city): odwrócony boundingbox");
-      }
-
-      return {
-        south, north, west, east,
-        display: top.display_name || c,
-        lat: parseFloat(top.lat),
-        lon: parseFloat(top.lon),
-      };
+      return { south, north, west, east };
     }
 
-    async function geocodeNominatim(query, bounds /* optional */) {
+    async function geocodeNominatim(query, bounds) {
       const q = normalizeQuery(query);
       if (!q) throw new Error("Nominatim: pusty query");
 
@@ -385,7 +511,6 @@ ul. Odrzańska 1</textarea>
       url.searchParams.set("limit", "1");
       url.searchParams.set("q", q);
 
-      // Ograniczenie wyszukiwania do granic miasta (jeżeli znane).
       if (bounds) {
         url.searchParams.set("viewbox", boundsToNominatimViewbox(bounds));
         url.searchParams.set("bounded", "1");
@@ -401,39 +526,25 @@ ul. Odrzańska 1</textarea>
       if (!Array.isArray(data) || data.length === 0) throw new Error("Nominatim: brak wyników");
 
       const top = data[0];
-      const out = {
-        provider: "nominatim",
-        display: top.display_name || q,
-        lat: parseFloat(top.lat),
-        lon: parseFloat(top.lon),
-      };
-
-      if (bounds && !withinBounds(out.lat, out.lon, bounds)) {
-        throw new Error("Nominatim: wynik poza granicami miasta (sprawdź nazwę miasta)");
-      }
-
+      const out = { provider: "nominatim", display: top.display_name || q, lat: parseFloat(top.lat), lon: parseFloat(top.lon) };
+      if (bounds && !withinBounds(out.lat, out.lon, bounds)) throw new Error("Nominatim: wynik poza granicami miasta");
       return out;
     }
 
-    async function geocodePhoton(query, bounds /* optional */) {
+    async function geocodePhoton(query, bounds) {
       const q = normalizeQuery(query);
       if (!q) throw new Error("Photon: pusty query");
 
       const url = new URL(PHOTON_BASE + "/api/");
       url.searchParams.set("q", q);
       url.searchParams.set("limit", "1");
-
-      // Ograniczenie do bbox miasta, jeśli znamy granice.
-      if (bounds) {
-        url.searchParams.set("bbox", boundsToPhotonBbox(bounds));
-      }
+      if (bounds) url.searchParams.set("bbox", boundsToPhotonBbox(bounds));
 
       const resp = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
       if (!resp.ok) {
         const body = await safeReadJson(resp);
-        const msg = (body && (body.message || body.error)) ? (body.message || body.error) : (body && body._text ? body._text : "");
-        const extra = msg ? ` | ${msg}` : "";
-        throw new Error(`Photon HTTP ${resp.status}${extra}`);
+        const msg = body && (body.message || body.error || body._text) ? (body.message || body.error || body._text) : "";
+        throw new Error(`Photon HTTP ${resp.status}${msg ? " | " + msg : ""}`);
       }
       const data = await resp.json();
 
@@ -444,27 +555,16 @@ ul. Odrzańska 1</textarea>
       const props = f.properties || {};
       const display = [props.name, props.street, props.city, props.country].filter(Boolean).join(", ") || q;
 
-      const out = {
-        provider: "photon",
-        display,
-        lat: parseFloat(lat),
-        lon: parseFloat(lon),
-      };
-
-      if (bounds && !withinBounds(out.lat, out.lon, bounds)) {
-        throw new Error("Photon: wynik poza granicami miasta (sprawdź nazwę miasta)");
-      }
-
+      const out = { provider: "photon", display, lat: parseFloat(lat), lon: parseFloat(lon) };
+      if (bounds && !withinBounds(out.lat, out.lon, bounds)) throw new Error("Photon: wynik poza granicami miasta");
       return out;
     }
 
-    async function geocodeAuto(query, bounds /* optional */) {
-      try {
-        return await geocodeNominatim(query, bounds);
-      } catch (e1) {
-        try {
-          return await geocodePhoton(query, bounds);
-        } catch (e2) {
+    async function geocodeAuto(query, bounds) {
+      try { return await geocodeNominatim(query, bounds); }
+      catch (e1) {
+        try { return await geocodePhoton(query, bounds); }
+        catch (e2) {
           throw new Error(
             `Geokodowanie nie powiodło się (Nominatim + Photon).\n` +
             `- Nominatim: ${e1 && e1.message ? e1.message : String(e1)}\n` +
@@ -474,14 +574,34 @@ ul. Odrzańska 1</textarea>
       }
     }
 
-    async function geocodeOne(addr, city, mode, bounds /* optional */) {
-      const a = normalizeQuery(addr);
+    async function geocodeOne(stopLine, city, mode, bounds) {
+      const a = normalizeQuery(stopLine);
       const c = normalizeQuery(city);
-      const q = a.toLowerCase().includes(c.toLowerCase()) ? a : `${a}, ${c}`;
 
-      if (mode === "nominatim") return await geocodeNominatim(q, bounds);
-      if (mode === "photon") return await geocodePhoton(q, bounds);
-      return await geocodeAuto(q, bounds);
+      const mk = (x) => {
+        const t = normalizeQuery(x);
+        return t.toLowerCase().includes(c.toLowerCase()) ? t : `${t}, ${c}`;
+      };
+
+      const attempt = async (q) => {
+        if (mode === "nominatim") return await geocodeNominatim(q, bounds);
+        if (mode === "photon") return await geocodePhoton(q, bounds);
+        return await geocodeAuto(q, bounds);
+      };
+
+      // 1) pełna linia
+      try { return await attempt(mk(a)); }
+      catch (e1) {
+        // 2) jedna próba uproszczona
+        const alt = normalizeQuery(a.split(" – ")[0].split(" - ")[0]);
+        if (alt && alt !== a) {
+          try { return await attempt(mk(alt)); }
+          catch (e2) {
+            throw new Error(`Nie udało się zgeokodować: "${a}"\n- Próba pełna: ${e1.message || e1}\n- Próba uproszczona: ${e2.message || e2}`);
+          }
+        }
+        throw new Error(`Nie udało się zgeokodować: "${a}"\n- Błąd: ${e1.message || e1}`);
+      }
     }
 
     // ====== OSRM (macierz + trasa) ======
@@ -517,15 +637,11 @@ ul. Odrzańska 1</textarea>
       const data = await resp.json();
       const r = (data && data.routes && data.routes[0]) || null;
       if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates)) throw new Error("OSRM: brak geometrii trasy");
-      return {
-        distance: r.distance,
-        duration: r.duration,
-        line: r.geometry.coordinates, // [lon,lat]
-      };
+      return { distance: r.distance, duration: r.duration, line: r.geometry.coordinates };
     }
 
     // ====== Optymalizacja kolejności (DP TSP, ścieżka bez powrotu) ======
-    function solveOpenPathTsp(durations, fixedStartIndex /* null|number */) {
+    function solveOpenPathTsp(durations, fixedStartIndex) {
       const n = durations.length;
       const INF = 1e18;
 
@@ -582,37 +698,6 @@ ul. Odrzańska 1</textarea>
       return { order, bestSeconds: dp[full][end] };
     }
 
-    // ====== Minimalne testy (bez sieci) ======
-    function assert(cond, msg) {
-      if (!cond) throw new Error(msg || "assert failed");
-    }
-
-    function runLocalTests() {
-      // Test normalizacji (ważne: żadnych surowych znaków nowej linii w literałach)
-      assert(normalizeQuery("  ul.\t\r\nŚwidnicka   8  ") === "ul. Świdnicka 8", "normalizeQuery whitespace");
-      assert(normalizeQuery("„Test”").includes('"Test"'), "normalizeQuery quotes");
-
-      // Test bbox helpers
-      const b = { south: 1, north: 2, west: 3, east: 4 };
-      assert(boundsToPhotonBbox(b) === "3,1,4,2", "Photon bbox format");
-      assert(boundsToNominatimViewbox(b) === "3,2,4,1", "Nominatim viewbox format");
-      assert(withinBounds(1.5, 3.5, b) === true, "withinBounds inside");
-      assert(withinBounds(5, 3.5, b) === false, "withinBounds outside");
-
-      // Test solvera: preferuje 0->1->2
-      const d = [
-        [0, 1, 10],
-        [1, 0, 1],
-        [10, 1, 0],
-      ];
-      const { order } = solveOpenPathTsp(d, 0);
-      assert(order.length === 3, "order length");
-      assert(order[0] === 0, "fixed start respected");
-      assert(order.join(",") === "0,1,2", "expected order 0,1,2");
-
-      return true;
-    }
-
     // ====== Mapa ======
     const map = L.map("map", { zoomControl: true });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -631,6 +716,15 @@ ul. Odrzańska 1</textarea>
       }
     }
 
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function addMarkersAndRoute(stopsOrdered, lineCoords) {
       stopsOrdered.forEach((s, idx) => {
         const marker = L.marker([s.lat, s.lon]).addTo(layerGroup);
@@ -642,77 +736,44 @@ ul. Odrzańska 1</textarea>
       map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
     }
 
-    function escapeHtml(s) {
-      return String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    // ====== Główna akcja ======
-    async function run() {
-      const city = normalizeQuery($("city").value);
-      const addrLines = parseAddresses($("addresses").value).map(normalizeQuery);
+    // ====== Obliczenia ======
+    async function computeRoute() {
+      state.city = normalizeQuery($("city").value) || state.city;
+      const city = normalizeQuery(state.city);
+      const stopLines = (state.stops || []).map(normalizeQuery).filter(Boolean);
       const geocoderMode = $("geocoder").value;
       const startMode = $("startMode").value;
 
-      if (!city) {
-        setStatus("Błąd: proszę podać miasto.");
-        return;
-      }
-      if (addrLines.length < 2) {
-        setStatus("Błąd: proszę podać co najmniej 2 adresy.");
-        return;
-      }
+      if (!city) { setStatus("Błąd: brak miasta."); return; }
+      if (stopLines.length < 2) { setStatus("Błąd: wymagane są co najmniej 2 przystanki."); return; }
 
       clearMap();
       $("result").style.display = "none";
 
-      btnRun.disabled = true;
-      btnExample.disabled = true;
-
+      setBusy(true);
       try {
         setStatus("Ustalanie granic miasta (bbox)…");
-        let cityBounds = null;
-        try {
-          cityBounds = await getCityBoundsNominatim(city);
-        } catch (e) {
-          console.warn("City bbox unavailable", e);
-          cityBounds = null;
-        }
+        const cityBounds = await getCityBoundsNominatim(city);
 
         clearMap();
-        if (cityBounds) {
-          L.rectangle([[cityBounds.south, cityBounds.west], [cityBounds.north, cityBounds.east]], { weight: 1 }).addTo(layerGroup);
-        }
+        L.rectangle([[cityBounds.south, cityBounds.west], [cityBounds.north, cityBounds.east]], { weight: 1 }).addTo(layerGroup);
 
-        setStatus(`Geokodowanie: ${addrLines.length} adresów…`);
-
+        setStatus(`Geokodowanie: ${stopLines.length} przystanków…`);
         const stops = [];
-        for (let i = 0; i < addrLines.length; i++) {
-          const input = addrLines[i];
-          setStatus(`Geokodowanie (${i + 1}/${addrLines.length}): ${input}`);
-
+        for (let i = 0; i < stopLines.length; i++) {
+          const input = stopLines[i];
+          setStatus(`Geokodowanie (${i + 1}/${stopLines.length}): ${input}`);
           const g = await geocodeOne(input, city, geocoderMode, cityBounds);
-          stops.push({
-            input,
-            display: g.display,
-            lat: g.lat,
-            lon: g.lon,
-            provider: g.provider,
-          });
-
-          if (i < addrLines.length - 1) await sleep(GEOCODE_DELAY_MS);
+          stops.push({ input, display: g.display, lat: g.lat, lon: g.lon, provider: g.provider });
+          if (i < stopLines.length - 1) await sleep(GEOCODE_DELAY_MS);
         }
 
         setStatus("Pobieranie macierzy czasów pieszych (OSRM /table)…");
         const coords = stops.map(s => [s.lon, s.lat]);
         const table = await osrmTable(coords);
 
+        setStatus("Optymalizacja kolejności…");
         const fixedStartIndex = (startMode === "fixed") ? 0 : null;
-        setStatus("Optymalizacja kolejności (dokładnie)…");
         const { order } = solveOpenPathTsp(table.durations, fixedStartIndex);
 
         const stopsOrdered = order.map(idx => stops[idx]);
@@ -736,49 +797,75 @@ ul. Odrzańska 1</textarea>
 
         $("result").style.display = "block";
         setStatus("Gotowe. Trasa została narysowana na mapie.");
-
       } catch (e) {
         console.error(e);
-        setStatus(
-          "Błąd: " + (e && e.message ? e.message : String(e)) +
-          "\n\nJeżeli widzi Pan/Pani błąd typu CORS lub 429/403, to zwykle oznacza blokadę / limit usługi publicznej. " +
-          "W takim przypadku proszę przełączyć geokoder na Nominatim lub użyć własnego backendu/proxy."
-        );
+        setStatus("Błąd: " + (e && e.message ? e.message : String(e)));
       } finally {
-        btnRun.disabled = false;
-        btnExample.disabled = false;
+        setBusy(false);
       }
     }
 
-    // ====== Przykład ======
-    btnExample.addEventListener("click", () => {
-      $("city").value = "Wrocław";
-      $("addresses").value = [
-        "Rynek 1",
-        "plac Solny 1",
-        "ul. Świdnicka 8",
-        "ul. Piłsudskiego 105",
-        "ul. Grodzka 11",
-        "ul. Katedralna 4",
-        "ul. Wita Stwosza 32",
-        "ul. Kazimierza Wielkiego 35",
-        "ul. Kuźnicza 21",
-        "ul. Odrzańska 1",
+    // ====== Minimalne testy lokalne (bez sieci) ======
+    function assert(cond, msg) { if (!cond) throw new Error(msg || "assert failed"); }
+
+    function runLocalTests() {
+      assert(normalizeQuery("  ul.\t\r\nŚwidnicka   8  ") === "ul. Świdnicka 8", "normalizeQuery whitespace");
+
+      const sampleTab = [
+        "MIASTO\tWrocław",
+        "MIEJSCE\t1. Rynek – przy Ratuszu",
+        "MIEJSCE\t2. Pręgierz – Rynek",
       ].join("\n");
-      setStatus("Wczytano przykład.");
+      const p1 = extractCityAndStopsFromTutayText(sampleTab);
+      assert(p1.city === "Wrocław", "parse city tab");
+      assert(p1.stops.length === 2, "parse stops tab count");
+
+      const sampleAdres = [
+        "MIASTO\tWrocław",
+        "ADRES\t1. Rynek 1",
+        "ADRES\t2. Kurzy Targ 4",
+      ].join("\n");
+      const p2 = extractCityAndStopsFromTutayText(sampleAdres);
+      assert(p2.mode === "ADRES", "prefer ADRES");
+      assert(p2.stops[0] === "Rynek 1", "clean numbering" );
+
+      const d = [
+        [0, 1, 10],
+        [1, 0, 1],
+        [10, 1, 0],
+      ];
+      const { order } = solveOpenPathTsp(d, 0);
+      assert(order.join(",") === "0,1,2", "tsp order");
+      return true;
+    }
+
+    // ====== Zdarzenia ======
+    docxInput.addEventListener("change", async () => {
+      const files = Array.from(docxInput.files || []);
+      if (files.length === 0) return;
+
+      setBusy(true);
+      try {
+        await loadDocxFiles(files);
+        await computeRoute(); // wymaganie: licz trasę automatycznie po dodaniu pliku
+      } catch (e) {
+        console.error(e);
+        setStatus("Błąd przy wczytywaniu DOCX: " + (e && e.message ? e.message : String(e)));
+      } finally {
+        setBusy(false);
+      }
     });
 
-    btnRun.addEventListener("click", run);
+    btnRecalc.addEventListener("click", computeRoute);
 
     map.setView([51.11, 17.03], 13);
 
-    // Uruchom minimalne testy lokalne (bez sieci)
     try {
       runLocalTests();
       console.info("Local tests: OK");
     } catch (e) {
       console.error("Local tests failed", e);
-      setStatus("Uwaga: wewnętrzne testy lokalne nie przeszły. Sprawdź konsolę.");
+      setStatus("Uwaga: wewnętrzne testy lokalne nie przeszły. Proszę sprawdzić konsolę.");
     }
   </script>
 </body>
